@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>文件列表</title>
+</head>
+<body>
+<input type="hidden" id="token" name="token" th:value="${token}" style="width:260px;" />
+<table id="filelist" style="width:100%">
+    <tr><td>文件名</td><td>最后更新时间</td><td>作者</td><td>文件大小（字节）</td><td>是否目录</td></tr>
+</table>
+</body>
+<script src="/js/jquery-3.6.0.min.js"></script>
+
+<script type="text/javascript">
+    var token = $.trim($("#token").val());
+    console.log("token="+token);
+
+    $(function() {
+    });
+</script>
+
+</html>

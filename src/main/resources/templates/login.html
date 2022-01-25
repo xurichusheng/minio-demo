@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>登录</title>
+</head>
+<body>
+<h1>欢迎登录系统</h1>
+<form action="/login/tolist" method="post">
+    <input type="text" name="loginName" id="loginName" placeholder="请输入用户名"/>
+    <input type="password" name="password" id="password" placeholder="请输入密码"/>
+    <input type="hidden" name="returnUrl" th:value="${returnUrl}">
+    <input type="submit" value="提交登录"/>
+</form>
+<span style="color:red" th:text="${errmsg}"></span>
+
+</body>
+
+<script src="/js/jquery-3.6.0.min.js"></script>
+
+<script type="text/javascript">
+     $(function(){
+        $("#login_btn").click(function(){
+            // 用户名
+            var loginName = $.trim($("#loginName").val());
+            // 密码
+            var password = $.trim($("#password").val());
+
+            if (loginName == null || loginName == "") {
+                alert("请填写用户名");
+                return false;
+            }
+            if (password == null || password == "") {
+                alert("请填写密码");
+                return false;
+            }
+            var reqData = {"loginName":loginName, "password":password};
+
+            $.ajax({
+                type:"POST",
+                dataType:"json",
+                contentType:'application/json',
+                async:false,
+                url:"/login/tolist",
+                headers:{'Content-Type':'application/json;charset=utf8','token':'1333333333'},
+                data:JSON.stringify(reqData),
+                success:function(data) {
+                    if (data && data.code == 200) {
+                        $("#token").val(data.data);
+                    } else {
+                        alert("登录失败！");
+                    }
+                },
+                error:function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert("登录失败！");
+                }
+            });
+        });
+     });
+</script>
+</html>

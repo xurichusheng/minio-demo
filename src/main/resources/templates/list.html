@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Minio存储桶列表</title>
+
+    <link rel="stylesheet" href="/css/jquery-ui.min.css">
+
+</head>
+<body>
+<input type="hidden" id="token" name="token" th:value="${token}" style="width:260px;" />
+<table id="bucketlist" style="width:100%"></table>
+
+<!-- 文件上传弹出窗 -->
+<div id="upload_dialog" title="文件列表">
+    <form id="upload_form" enctype="multipart/form-data">
+        <input type="file" id="uploadFile" name="file" style="width: 200px" class="input-group-append" />
+        <input type="hidden" id="upload_bucket" name="bucketName" value="" />
+        <button type="button" id="upload_btn" class="btn-dark">上传文件</button>
+    </form>
+</div>
+<!-- 文件列表弹出窗 -->
+<div id="dialog_div" title="文件列表">
+    <form>
+        <table id="filelist" style="width:100%"></table>
+    </form>
+</div>
+<!-- 预览弹出窗 -->
+<div id="yulan_div" title="文件列表">
+    <img id="yulan_img" src="" style="width: 400px; height: 400px;" />
+</div>
+</body>
+
+<script src="/js/jquery-3.6.0.min.js"></script>
+<script src="/js/jquery.bgiframe-3.0.1.js"></script>
+<script src="/js/jquery-ui.min.js"></script>
+
+<script type="text/javascript">
+    var token = $.trim($("#token").val());
+    console.log("token="+token);
+
+    // 上传文件弹窗，默认隐藏
+    $("#upload_dialog").dialog({autoOpen: false});
+    // 文件列表弹窗，默认隐藏
+    $("#dialog_div").dialog({autoOpen: false});
+    // 文件预览弹窗，默认隐藏
+    $("#yulan_div").dialog({autoOpen: false});
+
+    $(function() {
+        $("#bucketlist").html("");
+        // 获取所有的存储桶
+        $.ajax({
+            type:"GET",
+            dataType:"json",
+            async:false,
+            url:"/bucket/list", // 获取所有的存储桶
+            headers:{'Content-Type':'application/json;charset=utf8', 'token':token},
+            success:function(data) {
+
+                if (data && data.code == 200) {
+                    var items = data.data;
+
+                    if (items != null && items.length > 0) {
+                        var html = "<tr><td style='width:5%;'>序号</td><td style='width:20%;'>桶名</td><td style='width:10%;'>创建时间</td><td style='width:20%;'>操作</td></tr>";
+                        $.each(items, function (index, val) {
+                            index = index + 1;
+                            // 桶名
+                            var name = val.name;
+                            // 创建时间
+                            var createTime = val.createTime;
+
+                            // html += "<tr><td>"+index+"</td><td>"+name+"</td><td>"+createTime+"</td><td><a onclick=\"fileList('"+name+"')\" style='color:#CC3300;text-decoration:underline;cursor:pointer;'>查看文件</a></td><td><a onclick=\"showUpload('"+name+"')\" style='color:#CC3300;text-decoration:underline;cursor:pointer;'>上传文件</a></td></tr>";
+                            html += "<tr><td>"+index+"</td><td>"+name+"</td><td>"+createTime+"</td><td><a onclick=\"fileList('"+name+"')\" style='color:#CC3300;text-decoration:underline;cursor:pointer;'>查看文件</a></td></tr>";
+                        });
+                        console.log("html="+html);
+                        $("#bucketlist").html(html);
+                    }
+                } else {
+                    alert("查询失败！");
+                }
+            },
+            error:function (XMLHttpRequest, textStatus, errorThrown) {
+                alert("查询失败！");
+            }
+        });
+
+        // 上传文件
+        $("#upload_btn").click(function() {
+            // 存储桶名
+            var bucketName = $("#upload_bucket").val();
+
+            if (bucketName == null || bucketName == "") {
+                alert("请选择存储桶");
+                return false;
+            }
+            var fileName = $("#uploadFile").val();
+
+            if (fileName == null || fileName == "" || fileName.length == 0) {
+                alert("请选择文件");
+                return false;
+            }
+            var formData = new FormData($('#upload_form')[0]);
+            // var formJson = $('#upload_form').serializeJson();
+            //formData.append("bucketName", bucketName);
+            //formData.append("file", $('#upload_form')[0]);
+
+            $.ajax({
+                url: '/bucket/file/upload',
+                type: "post",
+                data: formData,
+                contentType: false,
+                processData: false,
+                headers:{'token':token},
+                success: function (data) {
+                    alert("上传成功");
+                    // $("#upload_dialog").dialog({autoOpen: false});
+                },
+                error:function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert("上传失败！");
+                }
+            });
+        }); // end of 上传文件
+
+    });
+
+    // 查询指定存储桶中的所有文件
+    function fileList(bucketName) {
+        if (bucketName == null || bucketName == "" || bucketName == undefined || bucketName == "undefined") {
+            alert("请选择存储桶");
+            return false;
+        }
+        $("#filelist").html("");
+
+        $.ajax({
+            type:"GET",
+            dataType:"json",
+            async:false,
+            url:"/bucket/file/list/" + bucketName, // 查询指定存储桶中的所有文件
+            headers:{'Content-Type':'application/json;charset=utf8', 'token':token},
+            success:function(data) {
+                console.log("fileList success");
+                if (data && data.code == 200) {
+                    var items = data.data;
+
+                    if (items != null && items.length > 0) {
+                        var html = "<tr><td>序号</td><td>文件名</td></td><td>最后更新时间</td><td>作者</td><td>文件大小（字节）</td><td>是否目录</td><td>操作</td></tr>";
+                        $.each(items, function (index, val) {
+                            index = index + 1;
+                            // 文件名
+                            var name = val.name;
+                            // 最后更新时间
+                            var lastModifyTime = val.lastModifyTime;
+                            // 作者
+                            var ownerName = val.ownerName;
+                            // 文件大小（字节）
+                            var size = val.size;
+                            // 是否目录
+                            var isDir = val.dir;
+                            // 文件永久链接
+                            var foreverUrl = val.foreverUrl;
+
+                            html += "<tr><td>"+index+"</td><td>"+name+"</td></td><td>"+lastModifyTime+"</td><td>"+ownerName+"</td><td>"+size+"</td><td>"+isDir+"</td><td><a onclick=\"view('"+bucketName+"', '"+name+"')\" style='color:#CC3300;text-decoration:underline;cursor:pointer;'>预览</a></td><td><a id='downloadFile' onclick=\"downloadFile('"+foreverUrl+"')\" style='color:#CC3300;text-decoration:underline;cursor:pointer;'>下载</a></td></tr>";
+                        });
+                        $("#filelist").html(html);
+                    }
+                    // $("#dialog_div").dialog("open");
+                    $("#dialog_div").dialog({
+                        autoOpen: true,
+                        height: 700,
+                        width: 800,
+                        modal: true,
+                        title: '确认',
+                        buttons: {
+                            "[确定]": function () {
+                                $(this).dialog("close");
+                            },
+                            "[关闭]": function () {
+                                $(this).dialog("close");
+                            }
+                        },
+                        close: function () {
+                            $(this).dialog("close");
+                        }
+                    });
+                } else {
+                    alert("查询失败！" + data.msg);
+                }
+            },
+            error:function (XMLHttpRequest, textStatus, errorThrown) {
+                alert("查询失败！");
+            }
+        });
+    }
+
+    // 预览
+    function view(bucketName, fileName) {
+        if (bucketName == null || bucketName == "") {
+            alert("请选择存储桶");
+            return false;
+        }
+        if (fileName == null || fileName == "") {
+            alert("请选择文件");
+            return false;
+        }
+        var reqData = {"bucketName":bucketName, "fileName":fileName};
+
+        $.ajax({
+            type:"POST",
+            dataType:"json",
+            contentType:'application/json',
+            async:false,
+            url:"/bucket/file/url",
+            headers:{'Content-Type':'application/json;charset=utf8','token':token},
+            data:JSON.stringify(reqData),
+            success:function(data) {
+                if (data && data.code == 200) {
+                    var url = data.data;
+                    $("#yulan_img").attr('src', url);
+
+                    $("#yulan_div").dialog({
+                        autoOpen: true,
+                        height: 600,
+                        width: 600,
+                        modal: true,
+                        title: '确认',
+                        buttons: {
+                            "[确定]": function () {
+                                $(this).dialog("close");
+                            },
+                            "[关闭]": function () {
+                                $(this).dialog("close");
+                            }
+                        },
+                        close: function () {
+                            $(this).dialog("close");
+                        }
+                    });
+                } else {
+                    alert("预览失败！");
+                }
+            },
+            error:function (XMLHttpRequest, textStatus, errorThrown) {
+                alert("预览失败！");
+            }
+        });
+    }
+
+    // 上传弹出窗
+    function showUpload(bucketName) {
+        if (bucketName == null || bucketName == "") {
+            alert("请选择存储桶");
+            return false;
+        }
+        $("#upload_bucket").val(bucketName);
+
+        $("#upload_dialog").dialog({
+            autoOpen: true,
+            height: 700,
+            width: 800,
+            modal: true,
+            title: '确认',
+            buttons: {
+                "[确定]": function () {
+                    $(this).dialog("close");
+                },
+                "[关闭]": function () {
+                    $(this).dialog("close");
+                }
+            },
+            close: function () {
+                $(this).dialog("close");
+            }
+        });
+    }
+
+    // 下载文件
+    function downloadFile(foreverUrl) {
+        var $downForm = $("<form method='get'></form>");
+        $downForm.attr("action", "/bucket/file/download");
+        var $input = $("<input type='hidden'>");
+        $input.attr("name", "filenamerel");
+        $input.val(foreverUrl);
+        $downForm.append($input);
+        $(document.body).append($downForm);
+        //提交表单，实现下载
+        $downForm.submit();
+    }
+</script>
+</html>
